@@ -1,0 +1,228 @@
+---
+title: "Coursera Statistical Inference Course Project 1st part"
+author: "Dmitry Bodunov"
+date: "Sunday, February 22, 2015"
+output: pdf_document
+---
+
+  This is a Coursera Statistical Inference course project report. In this report you'll see the difference between sample mean/variance and theoretical mean/variance for distribution of the mean of 40 exponentials. The exponential distribution has density 
+  $$ f(x)=Lambda * e^{(-Lambda*x)} $$
+  Let's start from generating sample of 1000 groups of 40 exponentials.
+
+```{r, echo=FALSE}
+library(graphics)
+library(knitr)
+set.seed(1010)
+lambda = 0.2
+par(mfrow=c(1,2))
+hist(rexp(1000, rate=lambda), main = 'Histogram of exp distribution (1000 values)', xlab='Value', cex.main=0.5)
+mns = NULL
+vns = NULL
+for (i in 1 : 1000){
+     temp = rexp(40, rate=lambda)
+     mns = c(mns, mean(temp))
+     vns = c(vns, var(temp))
+} 
+
+plot(x=vns, y=mns, main="Distribution of means over variances in each group of 40", xlab="Variances of groups", ylab="Means of groups",cex.main=0.5)
+points(x=mean(vns), y=mean(mns), col='red', cex=2, pch=16)
+points(x=1/lambda^2, y=1/lambda, col='cyan',cex=1, pch=16)
+```
+
+  One the left figure you can see sample of exponential distribution with *Lambda = 0.2*. On the right figure you can see distribution of means over variances for 1000 groups of 40 exponential means. The *red dot* is the mean of all the sample groups means and variances. The *cyan dot* is theoretical mean and variance. The R code, which builds this distributions and figures you can find in the Appendix 1.A. The thoeretical mean is 5 ($1/Lambda$, Lambda = 0.2). The theoretical variance is 25 ($1/Lambda^2$, Lambda=0.2). The sample mean is `r mean(mns)` and the mean groups variance is `r mean(vns)`. 
+  
+Now let's look at distribuition of 1000 values of 40 exponential means. It is shown on the figures below.
+
+```{r, echo=FALSE}
+par(mfrow=c(1,2))
+
+hist(mns, main="Histogram of exponential means", xlab="Means value", cex.main=0.5)
+sampleMean <- mean(mns)
+abline(v=sampleMean, col = 'red', lwd=2)
+abline(v=1/lambda, col = 'blue', lwd=2)
+
+plot(0,0, main='Theoretical variance(cyan) and sample variance(red)', xlab="",ylab="",axes=F, cex.main=0.5)
+points(0, 0,col='red', pch=15,cex=sqrt(var(mns))*20)
+points(0, 0, col='cyan', pch=15,cex=sqrt(1/lambda^2/40)*20)
+```
+
+At first let's look at the left figure. The *red line* shows sample mean and the *blue line* shows theoretical mean of th edistribution, which is $Mean.Theor=1/Lambda=$ **5** and the sample mean is $\frac{1}{1000} \sum_{i=1}^{1000} Group.of.40.Mean_{i}=$ **`r mean(mns)`**. 
+The right figure shows the difference between the sample and the theoretical variances. 
+The *red square* is reffered to sample distribution and the *cyan square* is reffered to theoretical distribution. You can think of sides of squares as stadnard deviations of the distributions. Then squares areas are variances and squares areas difference shows the difference of distributions variances.
+The theoretical distribution variance is $\frac{1}{Lambda^2*Group.size}=\frac{1}{0.2^2*40}=$ **`r 1/0.2^2/40`**. And the sample variance is **`r var(mns)`**.
+The R code which builds this figures you can find in the Appendix 1.B.
+
+Now let's show that the sample distribution is approximately normal. Look at the figures below
+
+```{r, echo=FALSE}
+par(mfrow=c(2,2))
+set.seed(1010)
+# plotting exponential distribution hist
+hist(rexp(1000, rate=lambda), main = 'Histogram of exp distribution', xlab='Value')
+
+#hist(mns, main="Histogram of exponential means", xlab="Means value")
+h <- hist(mns, main="Histogram of exponential means", xlab="Means value")
+sampleMean <- mean(mns)
+abline(v=sampleMean, col = 'red', lwd=1*sqrt(var(mns)))
+abline(v=1/lambda, col = 'blue', lwd=1/lambda/sqrt(40))
+tempX <- seq(min(mns), max(mns),length=1000)
+tempY <- dnorm(tempX, mean= 1/lambda, sd=1/lambda/sqrt(40))
+tempY <- tempY*diff(h$mids[1:2])*length(tempX) 
+lines(tempX, tempY, lwd= 3, col='blue')
+
+qqnorm(rexp(1000,rate=lambda),main='Q-Q Plot (Exp)', xlab="Normal quantiles", ylab="Exp quantiles")
+qqnorm(mns, main = 'Q-Q Plot (means)', xlab = 'Normal quantiles', ylab='Means quantiles')
+
+```
+Two left figures shows exponential distribution and Q-Q plot of exponential distribution against normal distribution.
+As you can see the distribution is not symmetric, and Q-Q plot doesn't even look as a straight line.
+
+Now let's look at the sample distribution and sample Q-Q plot on two right figures. The Q-Q plot is almost a straight line, the distribution is symmetric, and normal distribution density curve greatly fits the histogram.
+From this we can conclude that the sample distribution is approximately normal. The R code for the plots you can find in the Appendix 1.C.
+
+\pagebreak
+Appendix 1.A Exponential distribution and Group of 40 of Exponentials distribution
+```{r,fig.show='hide'}
+# setting lambda for exponential distribution
+lambda = 0.2
+
+# plotting exponential distribution hist
+hist(rexp(1000, rate=lambda), 
+     main = 'Histogram of exp distribution', 
+     xlab='Value')
+
+# generating 1000 groups of 40 exponential. And calculating its vars and means.
+mns = NULL
+vns = NULL
+for (i in 1 : 1000){
+     temp = rexp(40, 
+                 rate=lambda)
+     mns = c(mns, 
+             mean(temp))
+     vns = c(vns, 
+             var(temp))
+} 
+
+# plotting each group parameters on the plane 
+# y axis shows means, 
+# x axis shows variances. 
+# Red dot is sample var/mean. Cyan dot is theoretical var/mean
+plot(x=vns, 
+     y=mns, 
+     main="Distribution of means over variances in each group of 40", 
+     xlab="Variances of groups", 
+     ylab="Means of groups")
+points(x=mean(vns), 
+       y=mean(mns), 
+       col='red', 
+       cex=2, 
+       pch=16)
+points(x=1/lambda^2, 
+       y=1/lambda, 
+       col='cyan',
+       cex=1, 
+       pch=16)
+
+
+```
+\pagebreak
+Appendix 1.B Demonstration of sample/theoretical means/variances differences.
+```{r,fig.show='hide'}
+# plotting hist of the required distribution of 1000 means. 
+# Red line shows sample mean. 
+# Blue line shows theoretical mean.
+hist(mns, 
+     main="Histogram of exponential means", 
+     xlab="Means value")
+sampleMean <- mean(mns)
+abline(v=sampleMean, 
+       col = 'red', 
+       lwd=2)
+abline(v=1/lambda, 
+       col = 'blue', 
+       lwd=2)
+
+# plotting variances of the required distribution of 1000 means. 
+# Red square is reffered to sample variance. 
+# Cyan square is reffered to theoretical variance.
+hist(mns, 
+     main="Histogram of exponential means", 
+     xlab="Means value")
+sampleMean <- mean(mns)
+abline(v=sampleMean, 
+       col = 'red', 
+       lwd=1*sqrt(var(mns)))
+abline(v=1/lambda, col = 'blue', 
+       lwd=1/lambda/sqrt(40))
+plot(0,
+     0, 
+     main='Theoretical variance(cyan) and sample variance(red)', 
+     xlab="",
+     ylab="",
+     axes=F)
+points(0, 
+       0,
+       col='red', 
+       pch=15,
+       cex=sqrt(var(mns))*40)
+points(0, 
+       0, 
+       col='cyan', 
+       pch=15,
+       cex=sqrt(1/lambda^2/40)*40)
+
+```
+
+\pagebreak
+Appendix 1.C Demonstration of normality of the sample distribution.
+```{r,fig.show='hide'}
+par(mfrow=c(2,2))
+
+# plotting exponential distribution hist
+hist(rexp(1000, rate=lambda), main = 'Histogram of exp distribution', xlab='Value')
+
+# plotting histogram of the sample distribution with theoretical/sample means (blue/red)
+hist(mns, 
+     main="Histogram of exponential means", 
+     xlab="Means value")
+h <- hist(mns, 
+          main="Histogram of exponential means", 
+          xlab="Means value")
+sampleMean <- mean(mns)
+abline(v=sampleMean, 
+       col = 'red', 
+       lwd=1*sqrt(var(mns)))
+abline(v=1/lambda, 
+       col = 'blue', 
+       lwd=1/lambda/sqrt(40))
+# making and plotting normal distribution curve over the sample hist
+tempX <- seq(min(mns), 
+             max(mns),
+             length=1000)
+tempY <- dnorm(tempX, 
+               mean= 1/lambda, 
+               sd=1/lambda/sqrt(40))
+tempY <- tempY*diff(h$mids[1:2])*length(tempX) 
+lines(tempX, 
+      tempY, 
+      lwd= 3, 
+      col='blue')
+# Q-Q plot (exponential against normal)
+qqnorm(rexp(1000,rate=lambda),
+       main='Q-Q Plot (Exp)', 
+       xlab="Normal quantiles", 
+       ylab="Exp quantiles")
+# Q-Q plot (sample against normal)
+qqnorm(mns, 
+       main = 'Q-Q Plot (means)', 
+       xlab = 'Normal quantiles', 
+       ylab='Means quantiles')
+
+```
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-setwd('C:/Users/Dmi/Documents/R/Data/rprogdataProgAssignment3data')
+setwd('C:/Users/Dmi/Documents/R/Data/rprogdataProgAssignment3data/')
 # outcome <- read.csv("outcome-of-care-measures.csv", colClasses = "character")
 # head(outcome)
 # 

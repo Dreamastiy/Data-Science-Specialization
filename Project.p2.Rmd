@@ -1,0 +1,166 @@
+---
+title: "Coursera Statistical Inference Course Project 2nd part"
+author: "Dmitry Bodunov"
+date: "Sunday, February 22, 2015"
+output: pdf_document
+---
+This is a Coursera Statistical Inference course project 2nd part report. In the report you'll see the differences in teeth lengths under different conditions (supp and dose) from ToothGrowth data in R. Let's start with basic summary of the data. Look at the table and the figure below.
+```{r,echo=FALSE,fig.align='center'}
+data(ToothGrowth)
+summary(ToothGrowth)
+pairs(ToothGrowth)
+```
+From the table and the figure we see that *len* is continuous variable, *supp* is discrete ('OJ', 'VC') and *dose* is also discrete (0.5, 1.0, 2.0). 
+Now let's look at lengths distribution and Q-Q plot (lengths against normal distribution).
+```{r, echo=FALSE}
+par(mfrow=c(1,2))
+hist(ToothGrowth$len)
+qqnorm(ToothGrowth$len)
+
+```
+It's hard to say whether the distribution is normal or not, but further we will **assume this lengths distribution to be normal**.
+Let's now compare tooth growth by supp and dose. We'll start with supp.
+The lengths means and variances by supp are follows:
+```{r, echo=FALSE}
+tempSupp <- rbind(tapply(ToothGrowth$len, ToothGrowth$supp, mean), tapply(ToothGrowth$len, ToothGrowth$supp, var))
+rownames(tempSupp) <- c('Mean', 'Var')
+tempSupp
+```
+Let's make a t.test with alternative hypothesis 'OJ' mean length is greater than 'VC' mean length. We also **assume that the variances in both groups are equal**.
+```{r, echo=FALSE}
+t.test(ToothGrowth$len ~ ToothGrowth$supp, 
+       alternative='greater',
+       var.equal=T)
+suppMean <- tapply(ToothGrowth$len, ToothGrowth$supp, mean)
+#ToothGrowth$len[ToothGrowth$supp=='OJ']
+suppVar <- tapply(ToothGrowth$len, ToothGrowth$supp, var)
+suppOJ <- sum(ToothGrowth$supp=='OJ')
+suppVC <- sum(ToothGrowth$supp=='VC')
+```
+We can see that the confidence interval doesn't contain zero. **Then we can make a statistical inference that 'OJ' mean length is greater than 'VC' mean length with 95% confidence**. Manual calculation of the confidence interval is described in the Appendix 2.A. T.test with assumption of different group variances is described in the Appendix 2.B (the result is almost the same).
+Let's move on to tooth length against dose. Means and variances of groups you can see below:
+```{r, echo=FALSE}
+tempDose <- rbind(tapply(ToothGrowth$len, ToothGrowth$dose, mean),tapply(ToothGrowth$len, ToothGrowth$dose, var))
+rownames(tempDose) <- c('Mean', 'Var')
+tempDose
+```
+Let's make a t.test with alternative hypothesis mean length in less dose group is less than mean length in higher dose group. We also **assume that the variances in both groups are equal**.
+```{r, echo=FALSE}
+t.test(ToothGrowth$len[ToothGrowth$dose == 0.5] , ToothGrowth$len[ToothGrowth$dose == 1.0], 
+       alternative='less',
+       var.equal=T)
+
+t.test(ToothGrowth$len[ToothGrowth$dose == 1.0] , ToothGrowth$len[ToothGrowth$dose == 2.0], 
+       alternative='less',
+       var.equal=T)
+
+t.test(ToothGrowth$len[ToothGrowth$dose == 0.5] , ToothGrowth$len[ToothGrowth$dose == 2.0], 
+       alternative='less',
+       var.equal=T)
+```
+Since the confidence intervals don't contain zero **we can make a statistical inference that mean tooth length of the group with less dose is less than mean tooth length of a group with a higer dose with 95% confidence**. Manual calculation of the confidence interval is described in the Appendix 2.C. T.test with assumption of different group variances is described in the Appendix 2.D (the result is almost the same).
+
+The full R code you can find in the Appendix 2.E
+
+\pagebreak
+
+Appendix 2.A Manual calculation of confidence interval for supp
+
+`r suppMean[[1]]` - `r suppMean[[2]]`  `r qt(0.95, df=(60-2), lower.tail=F)` * $\sqrt[2]{1/`r suppVC` + 1/`r suppOJ`}$ * 
+     $\sqrt[2]{(`r suppVar[[1]]` * (`r suppOJ` - 1) + `r suppVar[[2]]` * (`r suppVC` - 1)) / 58}$ = `r suppMean[[1]]-suppMean[[2]] + c(1)*qt(0.95, df=(60-2), lower.tail=F) * sqrt(1/suppVC+ 1/suppOJ) * sqrt((suppVar[[1]]*(suppOJ-1)+suppVar[[2]]*(suppVC-1))/58)`. It's exactly the same. 
+     
+Appendix 2.B Assumption: vars are not equal for supp groups
+
+```{r, echo=FALSE} 
+
+t.test(ToothGrowth$len ~ ToothGrowth$supp, alternative='greater', var.equal=F)
+
+doseMean <- tapply(ToothGrowth$len, ToothGrowth$dose, mean)
+doseVar <- tapply(ToothGrowth$len, ToothGrowth$dose, var)
+dose0.5 <- sum(ToothGrowth$dose==0.5)
+dose2.0 <- sum(ToothGrowth$dose==2.0)
+
+```
+As you can see this assumption didn't change the result greatly.
+     
+Appendix 2.C Manual calculation of confidence interval for dose (only for 0.5 and 2.0)
+
+`r doseMean[[1]]` - `r doseMean[[3]]` + `r qt(0.95, df = 38, lower.tail=T)` * $\sqrt[2]{1/`r dose0.5` + 1/`r dose2.0`}$ *     $\sqrt[2]{(`r doseVar[[1]]` * (`r dose0.5` - 1) + `r doseVar[[3]]` * (`r dose2.0` - 1)) / 38}$ = `r doseMean[[1]]-doseMean[[3]] + c(1) *qt(0.95, df = 38, lower.tail=T) *sqrt(1/dose0.5+ 1/dose2.0) * sqrt((doseVar[[1]]*(dose0.5-1)+doseVar[[3]]*(dose2.0-1))/38)`. It's actually the same.
+
+Appendix 2.D Assumption: vars are not equal for dose groups
+```{r, echo=FALSE}
+t.test(ToothGrowth$len[ToothGrowth$dose == 0.5] , ToothGrowth$len[ToothGrowth$dose == 1.0], 
+       alternative='less',
+       var.equal=F)
+
+t.test(ToothGrowth$len[ToothGrowth$dose == 1.0] , ToothGrowth$len[ToothGrowth$dose == 2.0], 
+       alternative='less',
+       var.equal=F)
+
+t.test(ToothGrowth$len[ToothGrowth$dose == 0.5] , ToothGrowth$len[ToothGrowth$dose == 2.0], 
+       alternative='less',
+       var.equal=F)
+```
+As you can see this assumption didn't change the result greatly.
+
+Appendix 2.E R code listing
+```{r,eval=FALSE}
+
+data(ToothGrowth) #load data
+pairs(ToothGrowth) #look at dependecies
+hist(ToothGrowth$len) #hist of lengths
+summary(ToothGrowth) #summary
+qqnorm(ToothGrowth$len) #Q-Q plot (length against normal)
+suppMean <- tapply(ToothGrowth$len, ToothGrowth$supp, mean)
+#Find mean a var of different length groups and calculate number of elements in each group
+suppVar <- tapply(ToothGrowth$len, ToothGrowth$supp, var)
+suppOJ <- sum(ToothGrowth$supp=='OJ')
+suppVC <- sum(ToothGrowth$supp=='VC')
+doseMean <- tapply(ToothGrowth$len, ToothGrowth$dose, mean)
+doseVar <- tapply(ToothGrowth$len, ToothGrowth$dose, var)
+dose0.5 <- sum(ToothGrowth$dose==0.5)
+dose2.0 <- sum(ToothGrowth$dose==2.0)
+# Hypothesis testing supp, var is equal
+t.test(ToothGrowth$len ~ ToothGrowth$supp, 
+       alternative='greater',
+       var.equal=T)
+# confidence interval
+suppMean[[1]]-suppMean[[2]] + 
+     c(1)*qt(0.95, df=(60-2), lower.tail=F) * 
+     sqrt(1/suppVC+ 1/suppOJ) * 
+     sqrt((suppVar[[1]]*(suppOJ-1)+suppVar[[2]]*(suppVC-1))/58) 
+# t.test supp. var is not equal
+t.test(ToothGrowth$len ~ ToothGrowth$supp, 
+       alternative='greater',
+       var.equal=F)
+# confidence interval for difference of dose=0.5, dose=2.0
+doseMean[[1]]-doseMean[[3]] + 
+     c(1) *qt(0.95, df = 38, lower.tail=T) *
+     sqrt(1/dose0.5+ 1/dose2.0) * 
+     sqrt((doseVar[[1]]*(dose0.5-1)+doseVar[[3]]*(dose2.0-1))/38) 
+# t.test for dose var is  equal
+t.test(ToothGrowth$len[ToothGrowth$dose == 0.5] , ToothGrowth$len[ToothGrowth$dose == 1.0], 
+       alternative='less',
+       var.equal=T)
+t.test(ToothGrowth$len[ToothGrowth$dose == 1.0] , ToothGrowth$len[ToothGrowth$dose == 2.0], 
+       alternative='less',
+       var.equal=T)
+t.test(ToothGrowth$len[ToothGrowth$dose == 0.5] , ToothGrowth$len[ToothGrowth$dose == 2.0], 
+       alternative='less',
+       var.equal=T)
+# t.test for dose var is not equal
+t.test(ToothGrowth$len[ToothGrowth$dose == 0.5] , ToothGrowth$len[ToothGrowth$dose == 1.0], 
+       alternative='less',
+       var.equal=F)
+t.test(ToothGrowth$len[ToothGrowth$dose == 1.0] , ToothGrowth$len[ToothGrowth$dose == 2.0], 
+       alternative='less',
+       var.equal=F)
+t.test(ToothGrowth$len[ToothGrowth$dose == 0.5] , ToothGrowth$len[ToothGrowth$dose == 2.0], 
+       alternative='less',
+       var.equal=F)
+
+
+
+
+```
+
