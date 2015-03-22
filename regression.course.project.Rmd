@@ -1,0 +1,133 @@
+---
+title: "Coursera Regression Models Course Project"
+author: "Dmitry Bodunov"
+date: "Saturday, March 22, 2015"
+output: pdf_document
+---
+
+**Executive summary**
+
+This is a Coursera Regression model course project report. The *mtcars* data is analyzed. At first glance there is a significant difference in miles per gallon for cars with manual and automatic transmissions (manual better by 7.24 in mpg). But further analysis shows that a transmission type is 5%-unsignificant for mpg. Linear model *mpg versus transmission type* predicts only 36% ($R^2=0.3598$) of mpg variance. Final model which is built in the analysis predicts 84% of variance ($R^2=0.8374$), but doesn't contain type of a transmission as a predictor. It is shown that *mpg* is strongly depended on *number of cylinders* and *a car weight* but not on *type of transmission*. All the plots can be found in the appendix.
+
+**Explore data**
+```{r,echo=FALSE,message=FALSE, fig.align='center'}
+library(dplyr)
+data(mtcars)
+head(mtcars)
+mtcars <- mutate(mtcars, 
+                 am = factor(am, labels = c('Auto','Man')), 
+                 cyl = factor(cyl), 
+                 vs = factor(vs), 
+                 gear = factor(gear), 
+                 carb = factor(carb))
+```
+A scatterplot and summary for the mtcars data can be found in the appendix (*figure 1*, *figure 2*). Further we'll use number of cylinders (*cyl*), type of engine(*vs*), type of transmission (*am*), number of forward gears (*gear*), number of carburetors(*carb*) as factor variables.
+
+**Analysis**
+
+At first lets make t.test for difference in mpg with different transmissions for the whole population. 
+Because there are not many points, lets assume that the distributions of mpg for different transmissions are normal.
+In the appendix one can find quantile-quantile plots for mpg (*figure 3*). The distributions seem to be normal.
+t-test gives us 7.24 mpg difference between transmission types with 0.0007 p-value and (3.91, Inf) confidence interval. But t-test assumes that all the other parameters are equal, but it's not the case. So lets go deeper and build a plot for each combination of factor variables (*figure 4* in the appendix). 
+From the plot one can see that there are only 4 cars with straight type of engine (vs == 1), with 4 forwards gears (gear == 4) and 2 carburetors (carb == 2) have both automatic and manual transmissions. t-test shows unsignificant difference (p-value is 0.3496) between mpg for different types of transmission for these 4 cars. 
+
+**Regression**
+
+Lets build a model with all the available predictors. Coefficients and p-values for the model are in the appendix *figure 5*. From the model one can see that there are no 5%-significant predictors.
+Lets use *step* function to exclude insignificant predictors from the model.
+
+```{r,echo=FALSE,warning=FALSE,message=FALSE,results='hide'}
+library('dplyr')
+library('GGally')
+model <- lm(data = mtcars, mpg~.) 
+model.stepped <- step(model)
+summary(model.stepped)$coefficients
+
+```
+Coefficients and p-values for stepped model
+```{r,echo=FALSE,warning=FALSE,message=FALSE}
+round(summary(model.stepped)$coefficients[,1],2)
+round(summary(model.stepped)$coefficients[,4],3)
+
+```
+Type of a transmission has p-value 0.206 so lets exclude am from the regression too.
+Coefficients and p-values for stepped model without type of a transmission as a predictor are below
+```{r,echo=FALSE,warning=FALSE,message=FALSE}
+model.noam <- lm(data = mtcars, mpg ~ cyl + hp + wt)
+round(summary(model.noam)$coefficients[,1],2)
+round(summary(model.noam)$coefficients[,4],3)
+```
+Now we see that horse power has p-value is over 5%. Lets exclude horse power from the regression. The results are below.
+```{r,echo=FALSE,warning=FALSE,message=FALSE}
+model.final <- lm(data = mtcars, mpg ~ cyl + wt)
+round(summary(model.final)$coefficients[,1], 2)
+round(summary(model.final)$coefficients[,4], 4)
+```
+We see that all the coefficients has 5%-significance level. Cyl coefficients tell that with wt fixed changing from 4 cylinders to 6 will result in 4.26 mpg decrease, from 4 to 8 in 6.07 mpg decrease. And with cyl fixed increasing wt by 1 will result in 3.21 mpg decrease.  $R^2$ for this model is 0.84. For model where type of a transmission is the only predictor $R^2$ is 0.36. From residuals plots (*figure 6 in the appendix*) of final model one can see that residuals are almost normally distributed. It tells us that model fitting is good. Lets compare our final model with the model where type of transmission is the only predictor using ANOVA.
+
+```{r,echo=FALSE,warning=FALSE,message=FALSE}
+model.first <- lm(data = mtcars, mpg~am)
+anova(model.first, model.final)
+```
+One can see that the models significantly different. 
+
+**Conclusion**
+There is no significant difference in miles per gallon for cars with manual and automatic transmissions (at least at 5% significance level). More valuable variables are number of cylinders and weight of the car. With car weight fixed changing from 4 cylinders to 6 will result in 4.26 miles per gallon decrease, from 4 to 8 in 6.07 miles per gallon decrease. And with cyl fixed increasing car weight by 1 will result in 3.21 miles per gallon decrease.  $R^2$ for this model is 0.84.
+
+R code can be found in git repository file 'mpg-transmission.R' in
+
+https://github.com/Dreamastiy/Data-Science-Specialization
+
+\pagebreak
+
+**Appendix**
+
+Figure 1. Scatterplot for mtcars data.
+
+```{r, echo=FALSE, fig.height=5, fig.width=5}
+pairs(mtcars)
+```
+
+
+Figure 2. Summary for mtcars data.
+```{r,echo=FALSE}
+summary(mtcars)
+```
+\pagebreak
+Figure 3. Quantile-quantile plot *mpg versus normal* for different transmission types.
+
+```{r, echo=FALSE, fig.height=3, fig.width=6}
+par(mfrow = c(1,2))
+qqnorm(as.numeric(mtcars$mpg[mtcars$am=='Man']), main = 'Manual')
+qqnorm(as.numeric(mtcars$mpg[mtcars$am=='Auto']), main = 'Automatic')
+```
+
+Figure 4. Difference of mpg for different factor variables.
+
+```{r,echo=FALSE,message=FALSE, fig.height=5, fig.width=5, fig.align='center'}
+library('ggplot2')
+ggplot(mtcars, aes(x = cyl, y = mpg, fill = am)) +
+     geom_boxplot() +
+     facet_wrap(~ vs + gear + carb, scales = 'free_x')
+
+```
+\pagebreak
+Figure 5. Coefficients and p-values for model *mpg versus all available predictors*.
+
+```{r,echo=FALSE}
+model.first <- lm(data = mtcars, mpg~am-1)
+# see that in this case there are no 5%-significance variables
+round(summary(model)$coefficients[,c(1,4)],2)
+```
+
+Figure 6. Residuals plots for final model (mpg ~ cyl + wt).
+
+
+```{r,echo=FALSE, fig.align='center', fig.width=5}
+par(mfrow = c(2,2))
+plot(model.final)
+```
+
+
+
+
